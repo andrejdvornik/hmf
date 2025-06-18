@@ -144,7 +144,7 @@ class Transfer(cosmo.Cosmology):
         :type: float
         """
         if val < 0.1 or val > 10:
-            raise ValueError("sigma_8 out of bounds, %s" % val)
+            raise ValueError(f"sigma_8 out of bounds, ({val})")
         return val
 
     @parameter("param")
@@ -157,7 +157,7 @@ class Transfer(cosmo.Cosmology):
         :type: float
         """
         if val < -3 or val > 4:
-            raise ValueError("n out of bounds, %s" % val)
+            raise ValueError(f"n out of bounds, ({val})")
         return val
 
     @parameter("res")
@@ -205,16 +205,11 @@ class Transfer(cosmo.Cosmology):
 
         Must be greater than 0.
 
-        :type: float
+        :type: float or array-like
         """
-        try:
-            val = float(val)
-        except ValueError:
-            raise ValueError("z must be a number (", val, ")")
-
-        if val < 0:
-            raise ValueError("z must be > 0 (", val, ")")
-
+        val = np.array(val)
+        if np.any(val < 0):
+            raise ValueError(f"z must be > 0 ({val})")
         return val
 
     # ===========================================================================
@@ -290,9 +285,10 @@ class Transfer(cosmo.Cosmology):
     def growth_factor(self):
         r"""The growth factor."""
         if self.use_splined_growth:
-            return self._growth_factor_fn(self.z)
+            gf = self._growth_factor_fn(self.z)
         else:
-            return self.growth.growth_factor(self.z)
+            gf = self.growth.growth_factor(self.z)
+        return np.array(gf)[:, np.newaxis] if self.z.size > 1 else gf # Return scalar if z is scalar
 
     @cached_quantity
     def power(self):
@@ -322,6 +318,11 @@ class Transfer(cosmo.Cosmology):
 
         .. math:: \Delta_k = \frac{k^3 P_{\rm nl}(k)}{2\pi^2}
         """
+        if self.z.size > 1:
+            return np.array([_hfit(
+                self.k, self.delta_k[i, :], z=z, cosmo=self.cosmo, takahashi=self.takahashi
+            ) for i, z in enumerate(self.z)])
+        
         return _hfit(
             self.k, self.delta_k, z=self.z, cosmo=self.cosmo, takahashi=self.takahashi
         )

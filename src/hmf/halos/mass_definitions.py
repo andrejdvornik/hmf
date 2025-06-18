@@ -267,7 +267,7 @@ class SOCritical(SphericalOverdensity):
 class SOVirial(SphericalOverdensity):
     """A mass definition based on spherical overdensity.
 
-    Density threshold isgiven by Bryan and Norman (1998).
+    Density threshold is given by Bryan and Norman (1998).
     """
 
     def halo_density(self, z=0, cosmo=Planck15):
