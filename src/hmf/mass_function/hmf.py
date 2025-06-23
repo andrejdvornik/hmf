@@ -196,15 +196,19 @@ class MassFunction(transfer.Transfer):
 
         :type: float or array-like
         """
+        if not hasattr(val, "__len__"):
+            val = [val]
         val = np.array(val)
-
         if np.any(val <= 0):
             raise ValueError(f"delta_c must be > 0 ({val})")
         if np.any(val > 10.0):
             raise ValueError(f"delta_c must be < 10.0 ({val})")
 
         if self.z.shape != val.shape:
-            val = val * np.ones_like(self.z)[:, np.newaxis]
+            if val.size == 1:
+                val = val * np.ones_like(self.z)[:, np.newaxis]
+            else:
+                raise ValueError(f"delta_c must have the same shape as redshifts or be a scalar!)")
         return val
 
     @parameter("model")
@@ -359,8 +363,7 @@ class MassFunction(transfer.Transfer):
     @cached_quantity
     def sigma8_z(self):
         """sigma(8) at redshif z"""
-        sigma8_z = self.normalised_filter.sigma(8.0)
-        return sigma8_z if self.z.size > 1 else sigma8_z[0] # Return scalar if z is scalar
+        return self.normalised_filter.sigma(8.0)
 
     @cached_quantity
     def radii(self):
@@ -407,13 +410,12 @@ class MassFunction(transfer.Transfer):
     @cached_quantity
     def mass_nonlinear(self):
         """The nonlinear mass, nu(Mstar) = 1."""
-        nonlinear = np.zeros_like(np.atleast_1d(self.z))
-        nu = self.nu if self.z.size > 1 else self.nu[np.newaxis, :]
+        nonlinear = np.zeros_like(self.z)
         
         for i in range(self.z.size):
-            if nu[i, :].min() > 1 or nu[i, :].max() < 1:
+            if self.nu[i, :].min() > 1 or self.nu[i, :].max() < 1:
                 warnings.warn("Nonlinear mass outside mass range")
-                if nu[i, :].min() > 1:
+                if self.nu[i, :].min() > 1:
                     startr = np.log(self.radii.min())
                 else:
                     startr = np.log(self.radii.max())
@@ -442,9 +444,9 @@ class MassFunction(transfer.Transfer):
                     warnings.warn("Minimization failed :(")
                     nonlinear[i] = 0
             else:
-                nu_fnc = spline(nu[i, :], self.m, k=5)
+                nu_fnc = spline(self.nu[i, :], self.m, k=5)
                 nonlinear[i] = nu_fnc(1)
-        return nonlinear if self.z.size > 1 else nonlinear[0]
+        return nonlinear
 
     @cached_quantity
     def lnsigma(self):
@@ -472,14 +474,11 @@ class MassFunction(transfer.Transfer):
         """
         Effective spectral index at scale of halo radius at halo collapse.
         """
-        at_collapse = np.zeros_like(np.atleast_1d(self.z))
-        nu = self.nu if self.z.size > 1 else self.nu[np.newaxis, :]
-        
-        for i in range(np.atleast_1d(self.z).size):
-            fnc = spline(nu[i, :], self.n_eff)
+        at_collapse = np.zeros_like(self.z)
+        for i in range(self.z.size):
+            fnc = spline(self.nu[i, :], self.n_eff)
             at_collapse[i] = fnc(1)
-            
-        return at_collapse if self.z.size > 1 else at_collapse[0]
+        return at_collapse
 
     @cached_quantity
     def fsigma(self):
@@ -549,69 +548,39 @@ class MassFunction(transfer.Transfer):
         mass_density : bool, ``False``
             Whether to get the mass density, or number density.
         """
-        if self.z.size > 1:
-            # Get required local variables
-            size = len(self.m)
-            ngtm_out = np.zeros_like(dndm_in)
-            
-            # ff.Behroozi function won't work here.
-            # Moved the copy and update outside of the loop for speed
-            if not isinstance(self.hmf, ff.Behroozi):
-                new_mf = copy.deepcopy(self)
-                new_mf.update(Mmin=np.log10(self.m[-1]) + self.dlog10m, Mmax=18)
-                
-            for i in range(self.z.size):
-                m = self.m
-                dndm = dndm_in[i, :]
-                # If the highest mass is very low, we try calculating it to higher masses
-                # The dlog10m is NOT CHANGED, so the input needs to be finely spaced.
-                # If the top value of dndm is NaN, don't try calculating higher masses.
-                if m[-1] < 10**16.5 and not np.isnan(dndm[-1]) and not dndm[-1] == 0:
-                    if not isinstance(self.hmf, ff.Behroozi):
-                        dndm = np.concatenate((dndm, new_mf.dndm[i, :]))
-                        m = np.concatenate((m, new_mf.m))
-                    
-                ngtm = int_gtm(m[dndm > 0], dndm[dndm > 0], mass_density)
+        # Get required local variables
+        size = len(self.m)
+        ngtm_out = np.zeros_like(dndm_in)
         
-                # We need to set ngtm back in the original length vector with nans where
-                # they were originally
-                if len(ngtm) < size:  # Will happen if some dndlnm are NaN
-                    ngtm_temp = np.zeros(len(dndm))
-                    # ngtm_temp[:] = np.nan
-                    ngtm_temp[dndm > 0] = ngtm
-                    ngtm = ngtm_temp
-                # Since ngtm may have been extended, we cut it back
-                ngtm_out[i, :] = ngtm[:size]
-            return ngtm_out
-        else:
-            # Get required local variables
-            dndm = dndm_in
-            size = len(dndm)
+        # ff.Behroozi function won't work here.
+        # Moved the copy and update outside of the loop for speed
+        if not isinstance(self.hmf, ff.Behroozi):
+            new_mf = copy.deepcopy(self)
+            new_mf.update(Mmin=np.log10(self.m[-1]) + self.dlog10m, Mmax=18)
+            
+        for i in range(self.z.size):
             m = self.m
+            dndm = dndm_in[i, :]
             # If the highest mass is very low, we try calculating it to higher masses
             # The dlog10m is NOT CHANGED, so the input needs to be finely spaced.
             # If the top value of dndm is NaN, don't try calculating higher masses.
             if m[-1] < 10**16.5 and not np.isnan(dndm[-1]) and not dndm[-1] == 0:
-                # ff.Behroozi function won't work here.
                 if not isinstance(self.hmf, ff.Behroozi):
-                    new_mf = copy.deepcopy(self)
-                    new_mf.update(Mmin=np.log10(self.m[-1]) + self.dlog10m, Mmax=18)
-                    dndm = np.concatenate((dndm, new_mf.dndm))
-    
+                    dndm = np.concatenate((dndm, new_mf.dndm[i, :]))
                     m = np.concatenate((m, new_mf.m))
-    
+                
             ngtm = int_gtm(m[dndm > 0], dndm[dndm > 0], mass_density)
     
             # We need to set ngtm back in the original length vector with nans where
             # they were originally
-            if len(ngtm) < len(m):  # Will happen if some dndlnm are NaN
+            if len(ngtm) < size:  # Will happen if some dndlnm are NaN
                 ngtm_temp = np.zeros(len(dndm))
                 # ngtm_temp[:] = np.nan
                 ngtm_temp[dndm > 0] = ngtm
                 ngtm = ngtm_temp
-    
             # Since ngtm may have been extended, we cut it back
-            return ngtm[:size]
+            ngtm_out[i, :] = ngtm[:size]
+        return ngtm_out
 
     @cached_quantity
     def ngtm(self):

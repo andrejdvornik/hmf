@@ -207,6 +207,8 @@ class Transfer(cosmo.Cosmology):
 
         :type: float or array-like
         """
+        if not hasattr(val, "__len__"):
+            val = [val]
         val = np.array(val)
         if np.any(val < 0):
             raise ValueError(f"z must be > 0 ({val})")
@@ -285,10 +287,9 @@ class Transfer(cosmo.Cosmology):
     def growth_factor(self):
         r"""The growth factor."""
         if self.use_splined_growth:
-            gf = self._growth_factor_fn(self.z)
+            return self._growth_factor_fn(self.z)[:, np.newaxis]
         else:
-            gf = self.growth.growth_factor(self.z)
-        return np.array(gf)[:, np.newaxis] if self.z.size > 1 else gf # Return scalar if z is scalar
+            return self.growth.growth_factor(self.z)[:, np.newaxis]
 
     @cached_quantity
     def power(self):
@@ -318,11 +319,6 @@ class Transfer(cosmo.Cosmology):
 
         .. math:: \Delta_k = \frac{k^3 P_{\rm nl}(k)}{2\pi^2}
         """
-        if self.z.size > 1:
-            return np.array([_hfit(
-                self.k, self.delta_k[i, :], z=z, cosmo=self.cosmo, takahashi=self.takahashi
-            ) for i, z in enumerate(self.z)])
-        
-        return _hfit(
-            self.k, self.delta_k, z=self.z, cosmo=self.cosmo, takahashi=self.takahashi
-        )
+        return np.array([_hfit(
+            self.k, self.delta_k[i, :], z=z, cosmo=self.cosmo, takahashi=self.takahashi
+        ) for i, z in enumerate(self.z)])
