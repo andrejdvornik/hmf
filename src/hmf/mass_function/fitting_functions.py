@@ -189,7 +189,7 @@ class FittingFunction(_framework.Component):
         A vector of halo masses [units M_sun/h]. Only necessary if :attr:`req_mass`
         is True. Typically provides limits of applicability. Must correspond to
         `nu2`.
-    z   : float, optional
+    z   : array_like, optional
         The redshift. Only required if :attr:`req_z` is True, in which case the default
         is 0.
     n_eff : array_like, optional
@@ -222,7 +222,7 @@ class FittingFunction(_framework.Component):
         self,
         nu2: np.ndarray,
         m: Union[None, np.ndarray] = None,
-        z: float = 0.0,
+        z: Union[float, np.ndarray] = 0.0,
         n_eff: Union[None, np.ndarray] = None,
         mass_definition: Union[None, md.MassDefinition] = None,
         cosmo: csm.FLRW = csm.Planck15,

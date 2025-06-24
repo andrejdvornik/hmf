@@ -103,7 +103,7 @@ class MassFunction(transfer.Transfer):
         hmf_params: Optional[Dict[str, Any]] = None,
         mdef_model: Union[None, str, md] = None,
         mdef_params: Union[dict, None] = None,
-        delta_c: float = 1.686,
+        delta_c: Union[float, np.ndarray] = 1.686,
         filter_model: Union[str, Filter] = TopHat,
         filter_params: Union[dict, None] = None,
         disable_mass_conversion: bool = True,
@@ -388,7 +388,7 @@ class MassFunction(transfer.Transfer):
     @cached_quantity
     def sigma(self):
         """The sqrt of the mass variance at `z`, ``len=len(m)``."""
-        return self._sigma_0 * self.growth_factor
+        return self._sigma_0 * self.growth_factor[:, np.newaxis]
 
     @cached_quantity
     def nu(self):

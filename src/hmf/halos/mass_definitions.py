@@ -151,6 +151,7 @@ class MassDefinition(_framework.Component):
         if c is not None:
             c = np.atleast_1d(c)
         m = np.atleast_1d(m)
+        z = np.atleast_1d(z)
 
         if profile is None:
             try:
@@ -185,11 +186,11 @@ class MassDefinition(_framework.Component):
             c = [c]
 
         c_new = np.array(
-            [
+            [[
                 _find_new_concentration(
                     rho, mdef.halo_density(z, cosmo), profile._h, cc
                 )
-                for rho, cc in zip(rhos, c)
+                for rho, cc in zip(rhos, ci)] for ci in c
             ]
         )
 
@@ -383,7 +384,7 @@ def _find_new_concentration(rho_s, halo_density, h=None, x_guess=5.0):
     if x is None:
         raise OptimizationException(
             "Could not determine x where the density threshold "
-            f"{halo_density / rho_s:.2f} is satisfied. Largest x-range tried was "
+            f"{halo_density / rho_s} is satisfied. Largest x-range tried was "
             f"x={xmin} -- {xmax} which brackets {fnc(xmin)} -- {fnc(xmax)}"
         )
 

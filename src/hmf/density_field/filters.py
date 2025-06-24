@@ -264,7 +264,7 @@ class Filter(_framework.Component):
         r : array_like
             Radii
 
-        delta_c : float, optional
+        delta_c : array_like, optional
             Critical overdensity for collapse.
         """
         return (delta_c / self.sigma(r)) ** 2

@@ -95,7 +95,7 @@ class GrowthFactor(_GrowthFactor):
 
         Parameters
         ----------
-        z
+        z : float or array_like
             The redshift
 
         Returns
@@ -125,7 +125,7 @@ class GrowthFactor(_GrowthFactor):
 
         Parameters
         ----------
-        z : float
+        z : float or array_like
             The redshift
 
         Returns
@@ -168,7 +168,7 @@ class GrowthFactor(_GrowthFactor):
 
         Parameters
         ----------
-        z : float
+        z : float or array_like
             The redshift
         """
         return (
@@ -230,7 +230,7 @@ class FromFile(GrowthFactor):
 
         Parameters
         ----------
-        z : array_like
+        z : float or array_like
             Redshift.
 
         Returns
@@ -273,7 +273,7 @@ class FromArray(FromFile):
 
         Parameters
         ----------
-        z : array_like
+        z : float or array_like
             Redshift.
 
         Returns
@@ -347,7 +347,7 @@ class GenMFGrowth(GrowthFactor):
 
         Parameters
         ----------
-        z : array_like
+        z : float or array_like
             Redshift.
 
         Returns
@@ -502,7 +502,7 @@ if HAVE_CAMB:
 
             Parameters
             ----------
-            z : float
+            z : float or array_like
                 The redshift
 
             Returns

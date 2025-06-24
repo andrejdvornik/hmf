@@ -287,14 +287,14 @@ class Transfer(cosmo.Cosmology):
     def growth_factor(self):
         r"""The growth factor."""
         if self.use_splined_growth:
-            return self._growth_factor_fn(self.z)[:, np.newaxis]
+            return self._growth_factor_fn(self.z)
         else:
-            return self.growth.growth_factor(self.z)[:, np.newaxis]
+            return self.growth.growth_factor(self.z)
 
     @cached_quantity
     def power(self):
         """Normalised log power spectrum [units :math:`Mpc^3/h^3`]."""
-        return self.growth_factor**2 * self._power0
+        return self.growth_factor[:, np.newaxis]**2 * self._power0
 
     @cached_quantity
     def delta_k(self):
