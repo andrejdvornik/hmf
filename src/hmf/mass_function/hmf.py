@@ -209,7 +209,7 @@ class MassFunction(transfer.Transfer):
                 val = val * np.ones_like(self.z)[:, np.newaxis]
             else:
                 raise ValueError(f"delta_c must have the same shape as redshifts or be a scalar!)")
-        return val
+        return val[:, np.newaxis]
 
     @parameter("model")
     def hmf_model(self, val):
